@@ -1,3 +1,5 @@
+xares_data/
+
 # Byte-compiled / optimized / compiled files
 __pycache__/
 *.py[cod]
