@@ -5,8 +5,8 @@ eval_aishell-1:
     - AISHELL-1/test/test_000{000..011}.tar.gz
     key: text
     repo_id: mispeech/xares_llm_data
-  batch_size: 16
-  num_workers: 2
+  batch_size: 32
+  num_workers: 8
   metric: iCER
 eval_clotho:
   data:
@@ -15,8 +15,8 @@ eval_clotho:
     key: caption;captions
     prompt: Generate a short caption for the audio.
     repo_id: mispeech/xares_llm_data
-  batch_size: 16
-  num_workers: 2
+  batch_size: 32
+  num_workers: 8
   metric: FENSE
 eval_librispeech:
   data:
@@ -26,7 +26,7 @@ eval_librispeech:
     prompt: Transcribe the English speech into text
     repo_id: mispeech/xares_llm_data
   batch_size: 32
-  num_workers: 4
+  num_workers: 8
   metric: iWER
 eval_mecat:
   data:
@@ -45,7 +45,7 @@ eval_mecat:
     prompt: Write a general audiocaption.
     repo_id: mispeech/MECAT-Caption
   batch_size: 64
-  num_workers: 4
+  num_workers: 8
   metric: DATE
 eval_songdescriber:
   data:
@@ -54,6 +54,6 @@ eval_songdescriber:
     key: captions
     prompt: Generate a caption for the music
     repo_id: mispeech/xares_llm_data
-  batch_size: 16
-  num_workers: 0
+  batch_size: 32
+  num_workers: 8
   metric: FENSE

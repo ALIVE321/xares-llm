@@ -30,8 +30,6 @@ from xares_llm.task import (
 )
 
 
-
-
 def main(args):
     #Training
     train_config = XaresLLMTrainConfig.from_file_or_key(
@@ -48,6 +46,18 @@ def main(args):
 
     logger.info(f"Training with Train config \n{train_config}\n Eval config: {eval_configs}")
     runner = XaresLLMTask(train_config)
+
+    mode = args.mode  # "all", "train", "test"
+
+    if mode in ("all", "train"):
+        runner.train_mlp()
+        logger.info("Training completed.")
+
+    if mode == "train":
+        logger.info("Mode is 'train', skipping evaluation.")
+        return
+
+    # mode == "all" or "test"
     scores: List[Dict[str, Any]] = runner.run(eval_configs)
 
     logger.info("Scoring completed: All tasks scored.")
@@ -109,6 +119,13 @@ if __name__ == "__main__":
         action='store_true',
         help="Using deterministic mode for training/evaluation. Slows down training, but is reproducible",
         default=True,
+    )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["all", "train", "test"],
+        default="all",
+        help="Run mode: 'all' (train+test), 'train' (train only), 'test' (test only, requires existing checkpoint)",
     )
     args = parser.parse_args()
     main(args)

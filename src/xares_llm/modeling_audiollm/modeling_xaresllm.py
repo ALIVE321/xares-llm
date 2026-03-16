@@ -32,10 +32,10 @@ class XaresLLMModel(PreTrainedModel, nn.Module):
         self.config = config
         if Path(self.config.audio_encoder_name).is_file():
             audio_encoder = attr_from_py_path(self.config.audio_encoder_name, endswith="Encoder")(
-                **self.config.audio_encoder_params
-            )
+                **self.config.audio_encoder_params, train=False)
         else:
-            audio_encoder = attr_from_module(self.config.audio_encoder_name)(**self.config.audio_encoder_params)
+            audio_encoder = attr_from_module(self.config.audio_encoder_name)(
+                **self.config.audio_encoder_params, train=False)
         try:
             audio_encoder_parameters = list(audio_encoder.parameters())
             if len(audio_encoder_parameters) > 0:

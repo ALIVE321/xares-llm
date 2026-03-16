@@ -12,12 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from loguru import logger
 from transformers import Trainer, ProgressCallback
 from xares_llm.audiowebdataset import AudioTextTokenWebdataset
 
 
 class LoguruMetricsCallback(ProgressCallback):
+    def __init__(self):
+        super().__init__()
+        self._predict_step_count = 0
+        self._predict_log_interval = 100
+
     def on_log(self, args, state, control, logs=None, **kwargs):
         if state.is_world_process_zero:
             shallow_logs = {}
@@ -29,6 +35,11 @@ class LoguruMetricsCallback(ProgressCallback):
             _ = shallow_logs.pop("total_flos", None)
             log = ", ".join([f"{key} = {value}" for key, value in shallow_logs.items()])
             logger.info(str(log))
+
+    def on_prediction_step(self, args, state, control, **kwargs):
+        self._predict_step_count += 1
+        if self._predict_step_count % self._predict_log_interval == 0:
+            logger.info(f"Predict step {self._predict_step_count}")
 
 
 class XaresLLMTrainerEvaluator(Trainer):
@@ -52,3 +63,33 @@ class XaresLLMTrainerEvaluator(Trainer):
         if labels is not None:
             labels = labels.to(generated_ids.device)
         return (None, generated_ids, labels)
+
+    def _save(self, output_dir, state_dict=None):
+        """Override _save to handle models with shared tensors gracefully."""
+        output_dir = output_dir if output_dir is not None else self.args.output_dir
+        
+        # Try saving with safe_serialization first (default, modern format)
+        try:
+            self.model.save_pretrained(
+                output_dir,
+                state_dict=state_dict,
+            )
+        except RuntimeError as e:
+            # If we get a shared tensor error, fall back to safe_serialization=False
+            if "shared tensors" in str(e):
+                logger.warning(
+                    "Model contains shared tensors (e.g., nn.Sequential wrapping existing modules). "
+                    "Saving with safe_serialization=False to handle this."
+                )
+                self.model.save_pretrained(
+                    output_dir,
+                    state_dict=state_dict,
+                    safe_serialization=False,
+                )
+            else:
+                # Re-raise if it's a different error
+                raise
+        
+        # Save the tokenizer if present
+        if self.tokenizer is not None:
+            self.tokenizer.save_pretrained(output_dir)

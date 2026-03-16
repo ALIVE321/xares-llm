@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 
+import os
 import torch
 from pathlib import Path
 from transformers import AutoTokenizer, TrainingArguments
@@ -66,7 +67,7 @@ class XaresLLMTrainConfig:
     train_data: List[AudioTextDataType] | None = None
 
     # decoder
-    decoder_model_name: str = "HuggingFaceTB/SmolLM2-135M"
+    decoder_model_name: str = "Qwen/Qwen3-0.6B"
 
     # Dataloader/dataset arguments
     seed: int = field(default=42)
@@ -186,10 +187,13 @@ class XaresLLMEvaluationConfig:
 class XaresLLMTask:
     def __init__(self, train_config: XaresLLMTrainConfig):
         self.train_config = train_config
-        if Path(self.train_config.audio_encoder_module_path).is_file():
-            model_name = str(Path(self.train_config.audio_encoder_module_path).stem)
-        else:
-            model_name = self.train_config.audio_encoder_module_path.split(".")[-1]
+        # Check for EXP_NAME environment variable first, otherwise derive from encoder path
+        model_name = os.environ.get('EXP_NAME')
+        if model_name is None:
+            if Path(self.train_config.audio_encoder_module_path).is_file():
+                model_name = str(Path(self.train_config.audio_encoder_module_path).stem)
+            else:
+                model_name = self.train_config.audio_encoder_module_path.split(".")[-1]
         self.output_dir = Path(train_config.output_dir) / train_config.config_name / model_name
         logger.add(
             self.output_dir / "log.txt",

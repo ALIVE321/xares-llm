@@ -1,4 +1,6 @@
 xares_data/
+experiments/
+model
 
 # Byte-compiled / optimized / compiled files
 __pycache__/

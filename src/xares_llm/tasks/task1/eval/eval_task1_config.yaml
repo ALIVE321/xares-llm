@@ -1,12 +1,12 @@
 eval_asvspoof2015:
   data:
     data:
-    - ASVSpoof2015/test/asvspoof_eval_000{00..193}.tar.gz
+    - ASVSpoof2015/test/asvspoof_eval_0000{00..09}.tar.gz
     key: binary_spoof
     prompt: Detect if the audio is genuine or a spoof.
     repo_id: mispeech/xares_llm_data
-  batch_size: 128
-  num_workers: 2
+  batch_size: 64
+  num_workers: 8
   metric: Accuracy
 eval_cremad:
   data:
@@ -15,8 +15,8 @@ eval_cremad:
     key: label;labels
     prompt: Identify the emotion expressed in the speech.
     repo_id: mispeech/xares_llm_data
-  batch_size: 4
-  num_workers: 0
+  batch_size: 64
+  num_workers: 8
   metric: Accuracy
 eval_esc-50:
   data:
@@ -25,8 +25,8 @@ eval_esc-50:
     key: text;caption;captions;label;labels
     prompt: Classify the environmental sound.
     repo_id: mispeech/xares_llm_data
-  batch_size: 4
-  num_workers: 0
+  batch_size: 64
+  num_workers: 8
   metric: Accuracy
 eval_fluentspeechcommands:
   data:
@@ -35,8 +35,8 @@ eval_fluentspeechcommands:
     key: text;caption;captions;label;labels
     prompt: Identify the command, action, and object from the speech.
     repo_id: mispeech/xares_llm_data
-  batch_size: 4
-  num_workers: 2
+  batch_size: 64
+  num_workers: 8
   metric: Accuracy
 eval_freemusicarchive:
   data:
@@ -45,8 +45,8 @@ eval_freemusicarchive:
     key: genre
     prompt: Classify the music genre (FMA).
     repo_id: mispeech/xares_llm_data
-  batch_size: 4
-  num_workers: 2
+  batch_size: 64
+  num_workers: 8
   metric: Accuracy
 eval_fsd50k:
   data:
@@ -55,8 +55,8 @@ eval_fsd50k:
     key: label;labels
     prompt: Multi-label classification for FSD50k
     repo_id: mispeech/xares_llm_data
-  batch_size: 4
-  num_workers: 2
+  batch_size: 64
+  num_workers: 8
   metric: mAP
   metric_args:
     num_classes: 200
@@ -67,8 +67,8 @@ eval_fsdkaggle2018:
     key: label;labels
     prompt: Multi-label classification for FSDKaggle2018
     repo_id: mispeech/xares_llm_data
-  batch_size: 4
-  num_workers: 2
+  batch_size: 64
+  num_workers: 8
   metric: mAP
   metric_args:
     num_classes: 41
@@ -79,8 +79,8 @@ eval_gtzan:
     key: genre
     prompt: Classify the music genre (GTZAN).
     repo_id: mispeech/xares_llm_data
-  batch_size: 8
-  num_workers: 2
+  batch_size: 64
+  num_workers: 8
   metric: Accuracy
 eval_libricount:
   data:
@@ -89,8 +89,8 @@ eval_libricount:
     key: num_speakers
     prompt: Count the amount of speakers.
     repo_id: mispeech/xares_llm_data
-  batch_size: 128
-  num_workers: 0
+  batch_size: 64
+  num_workers: 8
   metric: Accuracy
 eval_nsynth:
   data:
@@ -99,8 +99,8 @@ eval_nsynth:
     key: instrument_family_str
     prompt: Classify the music instrument.
     repo_id: mispeech/xares_llm_data
-  batch_size: 8
-  num_workers: 0
+  batch_size: 64
+  num_workers: 8
   metric: Accuracy
 eval_speechcommandsv1:
   data:
@@ -109,8 +109,8 @@ eval_speechcommandsv1:
     key: text;caption;captions;label;labels
     prompt: Classify the keyword.
     repo_id: mispeech/xares_llm_data
-  batch_size: 128
-  num_workers: 2
+  batch_size: 64
+  num_workers: 8
   metric: Accuracy
 eval_urbansound8k:
   data:
@@ -119,8 +119,8 @@ eval_urbansound8k:
     key: soundevent
     prompt: Classify the urban sound.
     repo_id: mispeech/xares_llm_data
-  batch_size: 128
-  num_workers: 0
+  batch_size: 64
+  num_workers: 8
   metric: Accuracy
 eval_vocalsound:
   data:
@@ -129,8 +129,8 @@ eval_vocalsound:
     key: labels
     prompt: Classify the vocal sound.
     repo_id: mispeech/xares_llm_data
-  batch_size: 32
-  num_workers: 2
+  batch_size: 64
+  num_workers: 8
   metric: Accuracy
 eval_voxceleb1:
   data:
@@ -139,8 +139,8 @@ eval_voxceleb1:
     key: text;caption;captions;label;labels
     prompt: Are the two speakers the same or different?
     repo_id: mispeech/xares_llm_data
-  batch_size: 32
-  num_workers: 2
+  batch_size: 64
+  num_workers: 8
   metric: Accuracy
 eval_voxlingua33:
   data:
@@ -150,5 +150,5 @@ eval_voxlingua33:
     prompt: Classify the language.
     repo_id: mispeech/xares_llm_data
   batch_size: 64
-  num_workers: 2
+  num_workers: 8
   metric: Accuracy
