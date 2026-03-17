@@ -32,8 +32,14 @@ from xares_llm.task import (
 
 def main(args):
     #Training
+    overwrite_kwargs = args.args or {}
+    if args.exp_name:
+        overwrite_kwargs["exp_name"] = args.exp_name
     train_config = XaresLLMTrainConfig.from_file_or_key(
-        args.train_config, encoder_path=args.encoder_path, model_kwargs=args.model_args, overwrite_kwargs=args.args
+        args.train_config, 
+        encoder_path=args.encoder_path,
+        model_kwargs=args.model_args,
+        overwrite_kwargs=overwrite_kwargs,
     )
     eval_configs = XaresLLMEvaluationConfig.configs_from_file_or_key(args.eval_configs)
     if args.benchmark:
@@ -119,6 +125,12 @@ if __name__ == "__main__":
         action='store_true',
         help="Using deterministic mode for training/evaluation. Slows down training, but is reproducible",
         default=True,
+    )
+    parser.add_argument(
+        "--exp_name",
+        type=str,
+        default=None,
+        help="Experiment name for output directory. If not set, derived from encoder path.",
     )
     parser.add_argument(
         "--mode",

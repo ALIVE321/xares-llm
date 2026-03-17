@@ -59,6 +59,7 @@ class XaresLLMTrainConfig:
     audio_encoder_kwargs: Dict[str, Any] = field(default_factory=lambda: dict())
     output_dir: str = "experiments/"
     config_name: str = "default"  # Will be set if loaded from a .yaml
+    exp_name: str | None = None  # 实验名称，用于输出目录命名；为 None 时从 encoder path 自动推导
 
     # General
     torch_num_threads: int = 1  # Do not use too many otherwise slows down
@@ -187,8 +188,7 @@ class XaresLLMEvaluationConfig:
 class XaresLLMTask:
     def __init__(self, train_config: XaresLLMTrainConfig):
         self.train_config = train_config
-        # Check for EXP_NAME environment variable first, otherwise derive from encoder path
-        model_name = os.environ.get('EXP_NAME')
+        model_name = self.train_config.exp_name
         if model_name is None:
             if Path(self.train_config.audio_encoder_module_path).is_file():
                 model_name = str(Path(self.train_config.audio_encoder_module_path).stem)

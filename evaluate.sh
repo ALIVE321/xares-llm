@@ -13,15 +13,26 @@ tasks="task1 task2"
 model=example/whisper/whisper_encoder.py
 gpu_id=0
 mode=train # test
+model_name=
+exp_name=
 
 . parse_options.sh
 
 for task in $tasks; do
     echo "------- Run $task $mode --------"
+
+    extra_args=""
+    if [ -n "$model_name" ]; then
+        extra_args="$extra_args --model_args '{\"model_name\": \"$model_name\"}'"
+    fi
+    if [ -n "$exp_name" ]; then
+        extra_args="$extra_args --exp_name $exp_name"
+    fi
+
     if [ $mode == 'test' ]; then
-        CUDA_VISIBLE_DEVICES=$gpu_id python3 -m xares_llm.run $model $task $task --mode test
+        eval CUDA_VISIBLE_DEVICES=$gpu_id python3 -m xares_llm.run $model $task $task --mode test $extra_args
     elif [ $mode == 'train' ]; then
         pkill -f xares
-        accelerate launch --num_processes=8 --mixed-precision='bf16' -m xares_llm.run $model $task $task --mode train
+        eval accelerate launch --num_processes=8 --mixed-precision='bf16' -m xares_llm.run $model $task $task --mode train $extra_args
     fi
 done

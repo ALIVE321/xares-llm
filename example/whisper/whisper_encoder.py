@@ -11,7 +11,7 @@ def length_to_mask(lengths: torch.Tensor, max_len: int | None = None) -> torch.T
 
 
 class WhisperEncoder(torch.nn.Module):
-    def __init__(self, model_name="openai/whisper-base", train=True):
+    def __init__(self, model_name="openai/whisper-medium", train=True):
         super().__init__()
         self.processor = WhisperProcessor.from_pretrained(model_name)
         self.model = WhisperModel.from_pretrained(model_name).get_encoder()
