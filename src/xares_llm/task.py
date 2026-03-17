@@ -60,10 +60,11 @@ class XaresLLMTrainConfig:
     output_dir: str = "experiments/"
     config_name: str = "default"  # Will be set if loaded from a .yaml
     exp_name: str | None = None  # 实验名称，用于输出目录命名；为 None 时从 encoder path 自动推导
+    benchmark_type: str = "freeze-encoder"  # "freeze-encoder": frozen-enc + LoRA-LLM; "trainable-encoder": trainable-enc + frozen-LLM
 
     # General
     torch_num_threads: int = 1  # Do not use too many otherwise slows down
-    seed: int = 42  # manual seed for all experiments
+    seed: int = field(default=42)  # manual seed for all experiments
 
     train_data: List[AudioTextDataType] | None = None
 
@@ -71,7 +72,6 @@ class XaresLLMTrainConfig:
     decoder_model_name: str = "Qwen/Qwen3-0.6B"
 
     # Dataloader/dataset arguments
-    seed: int = field(default=42)
     crop_audio_length: float = 30  # Cropping all audio to at most 30s
     save_total_limit: int | None = field(default=1)
     save_steps: float = field(default=200)  # TrainingArguments is float ....
@@ -88,7 +88,6 @@ class XaresLLMTrainConfig:
     optimizer: str = "adamw_torch"  # adamw_bnb_8bit
     learning_rate: float = field(default=1e-4)
     weight_decay: float = field(default=0.01)
-    seed: int = field(default=42)
     max_grad_norm: float = field(default=1.0)
     logging_dir: str = "log"
     logging_steps: int = 100
@@ -122,7 +121,7 @@ class XaresLLMTrainConfig:
         yaml_config["audio_encoder_kwargs"] = model_kwargs
         if overwrite_kwargs is None:
             overwrite_kwargs = dict()
-        yaml_config = dict(**yaml_config, **overwrite_kwargs)
+        yaml_config.update(overwrite_kwargs)
         return cls(**yaml_config)
 
     @classmethod
@@ -203,7 +202,7 @@ class XaresLLMTask:
         )
         logger.info(f"Experiment output path set to {self.output_dir}")
         logger.info(f"Loading {train_config.decoder_model_name} tokenizer")
-        self.tokenizer = AutoTokenizer.from_pretrained(train_config.decoder_model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(train_config.decoder_model_name, fix_mistral_regex=True)
         training_args = TrainingArguments(
             output_dir=str(self.output_dir),
             learning_rate=self.train_config.learning_rate,
@@ -218,6 +217,7 @@ class XaresLLMTask:
             seed=self.train_config.seed,
             logging_steps=self.train_config.logging_steps,
             logging_dir=Path(self.output_dir) / self.train_config.logging_dir,
+            ddp_find_unused_parameters=False,
         )
         # Lazy init, during .train() or .eval()
         model_init_function = lambda: XaresLLMModel(
@@ -225,6 +225,7 @@ class XaresLLMTask:
                 decoder_type=self.train_config.decoder_model_name,
                 audio_encoder_name=self.train_config.audio_encoder_module_path,
                 audio_encoder_params=self.train_config.audio_encoder_kwargs,
+                benchmark_type=self.train_config.benchmark_type,
             ),
         )
         self.model = None

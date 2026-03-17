@@ -1,6 +1,6 @@
-max_steps: 20000
+max_steps: 25000
 num_training_workers: 8
-per_device_train_batch_size: 16
+per_device_train_batch_size: 8
 decoder_model_name: model/Qwen3-0.6B
 train_data:
     AISHELL-1:

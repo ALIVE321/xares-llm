@@ -11,11 +11,14 @@ def length_to_mask(lengths: torch.Tensor, max_len: int | None = None) -> torch.T
 
 
 class WhisperEncoder(torch.nn.Module):
-    def __init__(self, model_name="openai/whisper-medium", train=True):
+    def __init__(self, model_name="openai/whisper-medium", train=True, **kwargs):
         super().__init__()
         self.processor = WhisperProcessor.from_pretrained(model_name)
         self.model = WhisperModel.from_pretrained(model_name).get_encoder()
         self.output_dim = self.model.config.d_model
+        self.hop_size_in_ms = 20
+        if not train:
+            self.model.eval()
 
     def forward(self, audio: torch.Tensor, audio_attention_mask=None) -> tuple[torch.Tensor, torch.Tensor]:
         # Since feature extraction is on cpu this is super slow

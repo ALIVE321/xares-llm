@@ -28,7 +28,7 @@ class Qwen3OmniEncoder(nn.Module):
     输出维度为 encoder 内部的 d_model。
     """
 
-    def __init__(self, model_name="model/Qwen3-Omni-30B-A3B-Instruct", train=True):
+    def __init__(self, model_name="model/Qwen3-Omni-30B-A3B-Instruct", train=True, **kwargs):
         super().__init__()
 
         if not Path(model_name).exists():
@@ -37,7 +37,7 @@ class Qwen3OmniEncoder(nn.Module):
         full_model = Qwen3OmniMoeForConditionalGeneration.from_pretrained(
             model_name,
             dtype=torch.float32,
-            device_map="cpu" if train else None,
+            device_map=None,
         )
         self.processor = Qwen3OmniMoeProcessor.from_pretrained(
             model_name, fix_mistral_regex=True)
@@ -49,20 +49,19 @@ class Qwen3OmniEncoder(nn.Module):
         self.model.proj2 = nn.Identity()
         self.model.act = nn.Identity()
 
-        # 释放 CPU 上的完整模型，再将 audio_tower 搬到 GPU
         del full_model
         import gc
         gc.collect()
         torch.cuda.empty_cache()
 
-        # self.model = self.model.to("cuda")
-        self.model.eval()
+        if not train:
+            self.model.eval()
 
         self.sampling_rate = self.processor.feature_extractor.sampling_rate
         self.output_dim = self.model.config.d_model
         self.hop_size_in_ms = (
             self.processor.feature_extractor.hop_length / self.sampling_rate * 1000
-        )
+        ) * 8   # 8x downsampling
 
     @property
     def device(self):

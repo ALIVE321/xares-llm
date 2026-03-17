@@ -9,7 +9,10 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from src import WenetTransformerEncoderModel
+try:
+    from src import WenetTransformerEncoderModel
+except Exception as e:
+    raise RuntimeError(f"Failed to load wenet model files due to:\n{e}")
 
 
 def length_to_mask(lengths: torch.Tensor, max_len: int | None = None) -> torch.Tensor:
@@ -25,27 +28,23 @@ class WenetEncoder(nn.Module):
         self,
         model_name="model/ssl_hubert_v2.0.1",
         train=True,
-        num_mel_bins=128
+        num_mel_bins=128,
+        **kwargs
     ):
         super().__init__()
 
         self.model = WenetTransformerEncoderModel.from_pretrained(
-            model_name,
-            map_location="cpu" if train else None,
-        )
-        self.model.eval()
+            model_name, map_location='cpu')
+        if not train:
+            self.model.eval()
 
         self.sampling_rate = 16000
         self.output_dim = self.model.encoder_out_dim
         self.num_mel_bins = num_mel_bins
 
-        # whisper 风格 mel spectrogram 参数
         self.n_fft = 400         # 25ms @ 16kHz
         self.hop_length = 160    # 10ms @ 16kHz
-
-        # wenet encoder 的下采样率取决于 input_layer 类型
-        # causal_conv1d4: 下采样 4 倍 → hop_size = 4 * 10ms = 40ms → 25Hz
-        self.hop_size_in_ms = 40
+        self.hop_size_in_ms = 40 # 25Hz
 
     @property
     def device(self):

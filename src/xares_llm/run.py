@@ -35,6 +35,8 @@ def main(args):
     overwrite_kwargs = args.args or {}
     if args.exp_name:
         overwrite_kwargs["exp_name"] = args.exp_name
+    if args.benchmark_type:
+        overwrite_kwargs["benchmark_type"] = args.benchmark_type
     train_config = XaresLLMTrainConfig.from_file_or_key(
         args.train_config, 
         encoder_path=args.encoder_path,
@@ -131,6 +133,13 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help="Experiment name for output directory. If not set, derived from encoder path.",
+    )
+    parser.add_argument(
+        "--benchmark_type",
+        type=str,
+        choices=["freeze-encoder", "trainable-encoder"],
+        default="freeze-encoder",
+        help="Mode for training: 'freeze-encoder' (frozen encoder + LoRA LLM), 'trainable-encoder' (trainable encoder + frozen LLM)",
     )
     parser.add_argument(
         "--mode",

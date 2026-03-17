@@ -5,6 +5,7 @@ class DummyEncoder(torch.nn.Module):
     def __init__(self, **kwargs) -> None:
         super().__init__()
         self.output_dim = 256
+        self.hop_size_in_ms = 160  # 默认 6.25Hz，不需要下采样
 
     def forward(self, audio, audio_attention_mask=None) -> tuple[torch.Tensor, torch.Tensor | None]:
         output = torch.randn(len(audio), 10, self.output_dim, device=audio.device)

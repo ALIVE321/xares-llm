@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from transformers.configuration_utils import PretrainedConfig
-from typing import Dict, Any
+from typing import Dict, Any, Literal
+
+BENCHMARK_TYPE = Literal["freeze-encoder", "trainable-encoder"]
 
 
 class XaresLLMModelConfig(PretrainedConfig):
@@ -24,12 +26,16 @@ class XaresLLMModelConfig(PretrainedConfig):
         audio_encoder_name: str | None = None,
         audio_encoder_params: Dict[str, Any] = {},
         decoder_type: str = "HuggingFaceTB/SmolLM2-135M",
+        benchmark_type: BENCHMARK_TYPE = "freeze-encoder",
         **kwargs,
     ):
         super().__init__(**kwargs)
+        assert benchmark_type in ("freeze-encoder", "trainable-encoder"), \
+            f"benchmark_type must be 'freeze-encoder' or 'trainable-encoder', not {benchmark_type}"
         self.decoder_type = decoder_type
         self.audio_encoder_name = audio_encoder_name
         self.audio_encoder_params = audio_encoder_params
+        self.benchmark_type = benchmark_type
 
 
-__all__ = ["XAresLLMModelConfig"]
+__all__ = ["XaresLLMModelConfig"]
