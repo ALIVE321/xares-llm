@@ -117,15 +117,16 @@ class Qwen3ASREncoder(nn.Module):
 
     def forward(self, audio: torch.Tensor, audio_attention_mask=None) -> tuple[torch.Tensor, torch.Tensor]:
         assert isinstance(audio, torch.Tensor)
-        audio = audio.cpu().numpy()
         if audio.ndim == 1:
-            audio_list = [audio]
-        elif audio.ndim == 2:
-            audio_list = [a for a in audio]
-        else:
-            raise ValueError("Audio tensor must be 1D (single sequence) or 2D (batch of sequences).")
+            audio = audio.unsqueeze(0)
 
-        input_features, feature_lens = self._extract_features(audio)
+        if audio_attention_mask is not None:
+            audio_lengths = audio_attention_mask.sum(dim=-1).long()
+        else:
+            audio_lengths = torch.tensor([audio.shape[-1]] * audio.shape[0], dtype=torch.long)
+        audio_list = [audio[i, :audio_lengths[i]].cpu().numpy() for i in range(audio.shape[0])]
+
+        input_features, feature_lens = self._extract_features(audio_list)
         output = self._forward_encoder(input_features, feature_lens)
 
         # 用真实 mel 长度算下采样后长度（与 _get_feat_extract_output_lengths 一致）
@@ -140,7 +141,7 @@ class Qwen3ASREncoder(nn.Module):
 
 if __name__ == "__main__":
     model_name = "model/Qwen3-ASR-1.7B"
-    enc = Qwen3ASREncoder(model_name=model_name)
     print("Loading Qwen3ASR audio encoder ---- ")
+    enc = Qwen3ASREncoder(model_name=model_name)
     q, mask = enc(torch.randn(2, 32000), length_to_mask(torch.tensor([32000, 16000])))
-    print(f"output: {q.shape}, mask: {mask.shape}, output_dim: {enc.output_dim}")
+    print(f"output: {q.shape}, mask: {mask.shape}, output_dim: {enc.output_dim}, len: {mask.sum(-1)}")

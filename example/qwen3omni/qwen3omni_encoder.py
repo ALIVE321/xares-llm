@@ -132,15 +132,17 @@ class Qwen3OmniEncoder(nn.Module):
 
     def forward(self, audio: torch.Tensor, audio_attention_mask=None) -> tuple[torch.Tensor, torch.Tensor]:
         assert isinstance(audio, torch.Tensor)
-        audio = audio.cpu().numpy()
         if audio.ndim == 1:
-            audio_list = [audio]
-        elif audio.ndim == 2:
-            audio_list = [a for a in audio]
-        else:
-            raise ValueError("Audio tensor must be 1D (single sequence) or 2D (batch of sequences).")
+            audio = audio.unsqueeze(0)
 
-        input_features, feature_lens = self._extract_features(audio)
+        # 根据 attention_mask 截取每条音频的有效部分，避免 padding 噪声被当作有效音频
+        if audio_attention_mask is not None:
+            audio_lengths = audio_attention_mask.sum(dim=-1).long()
+        else:
+            audio_lengths = torch.tensor([audio.shape[-1]] * audio.shape[0], dtype=torch.long)
+        audio_list = [audio[i, :audio_lengths[i]].cpu().numpy() for i in range(audio.shape[0])]
+
+        input_features, feature_lens = self._extract_features(audio_list)
         # 构造 feature_attention_mask：(B, T_padded)，1 表示有效帧
         feature_attention_mask = length_to_mask(feature_lens)
 
@@ -152,8 +154,8 @@ class Qwen3OmniEncoder(nn.Module):
 
 
 if __name__ == "__main__":
-    model_name = "Qwen/Qwen3-Omni-30B-A3B-Instruct"
-    enc = Qwen3OmniEncoder(model_name=model_name)
+    model_name = "model/Qwen3-Omni-30B-A3B-Instruct"
     print("Loading Qwen3Omni audio encoder ---- ")
+    enc = Qwen3OmniEncoder(model_name=model_name)
     q, mask = enc(torch.randn(2, 32000), length_to_mask(torch.tensor([32000, 16000])))
-    print(f"output: {q.shape}, mask: {mask.shape}, output_dim: {enc.output_dim}")
+    print(f"output: {q.shape}, mask: {mask.shape}, output_dim: {enc.output_dim}, len: {mask.sum(-1)}")

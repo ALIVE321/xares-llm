@@ -134,11 +134,11 @@ class WenetEncoder(nn.Module):
 
 
 if __name__ == "__main__":
-    model_name = "model/wenet_ssl_hubert_v2.0.1"
-    enc = WenetEncoder(model_name=model_name)
+    model_name = "model/ssl_hubert_v2.0.1"
     print("Loading WenetEncoder ---- ")
+    enc = WenetEncoder(model_name=model_name)
     q, mask = enc(
         torch.randn(2, 32000),
         length_to_mask(torch.tensor([32000, 16000]), max_len=32000),
     )
-    print(f"output: {q.shape}, mask: {mask.shape}, output_dim: {enc.output_dim}")
+    print(f"output: {q.shape}, mask: {mask.shape}, output_dim: {enc.output_dim}, len: {mask.sum(-1)}")

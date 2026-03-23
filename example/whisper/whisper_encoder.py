@@ -16,29 +16,24 @@ class WhisperEncoder(torch.nn.Module):
         self.processor = WhisperProcessor.from_pretrained(model_name)
         self.model = WhisperModel.from_pretrained(model_name).get_encoder()
         self.output_dim = self.model.config.d_model
-        self.hop_size_in_ms = 20
+        self.hop_size_in_ms = 20    # 50Hz
         if not train:
             self.model.eval()
 
     def forward(self, audio: torch.Tensor, audio_attention_mask=None) -> tuple[torch.Tensor, torch.Tensor]:
         # Since feature extraction is on cpu this is super slow
         assert isinstance(audio, torch.Tensor)
-        audio = audio.cpu().numpy()
         if audio.ndim == 1:
-            # Single audio sequence
-            audio_list = [audio]
-        elif audio.ndim == 2:
-            # Batch of audio sequences
-            audio_list = [a for a in audio]
+            audio = audio.unsqueeze(0)
+
+        if audio_attention_mask is not None:
+            audio_lengths = audio_attention_mask.sum(dim=-1).long()
         else:
-            raise ValueError("Audio tensor must be 1D (single sequence) or 2D (batch of sequences).")
-        if audio_attention_mask is None:
-            audio_lens = torch.tensor([a.shape[-1] for a in audio_list])
-        else:
-            audio_lens = audio_attention_mask.sum(-1)
-        mel_lengths = audio_lens // self.processor.feature_extractor.hop_length
+            audio_lengths = torch.tensor([audio.shape[-1]] * audio.shape[0], dtype=torch.long)
+        audio_list = [audio[i, :audio_lengths[i]].cpu().numpy() for i in range(audio.shape[0])]
+
+        mel_lengths = audio_lengths // self.processor.feature_extractor.hop_length
         feature_lengths = (mel_lengths - 1) // 2 + 1
-        feature_lengths = (feature_lengths - 1) // 2 + 1
         trim_length = feature_lengths.amax()
         attention_mask = length_to_mask(feature_lengths)
 
@@ -48,6 +43,11 @@ class WhisperEncoder(torch.nn.Module):
 
 
 if __name__ == "__main__":
-    enc = WhisperEncoder()
-    q, _ = enc(torch.randn(4, 16000), length_to_mask(torch.tensor([16000, 8000, 4000, 2000])))
-    print(q.shape, enc.output_dim)
+    print("Loading WhisperEncoder ---- ")
+    model_name = 'model/whisper/whisper-medium'
+    enc = WhisperEncoder(model_name)
+    q, mask = enc(
+        torch.randn(2, 32000),
+        length_to_mask(torch.tensor([32000, 16000]), max_len=32000),
+    )
+    print(f"output: {q.shape}, mask: {mask.shape}, output_dim: {enc.output_dim}, len: {mask.sum(-1)}")
