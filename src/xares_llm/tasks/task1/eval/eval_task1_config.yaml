@@ -16,7 +16,7 @@ eval_cremad:
     prompt: Identify the emotion expressed in the speech.
     repo_id: mispeech/xares_llm_data
   batch_size: 64
-  num_workers: 8
+  num_workers: 2
   metric: Accuracy
 eval_esc-50:
   data:
@@ -26,7 +26,7 @@ eval_esc-50:
     prompt: Classify the environmental sound.
     repo_id: mispeech/xares_llm_data
   batch_size: 64
-  num_workers: 8
+  num_workers: 1
   metric: Accuracy
 eval_fluentspeechcommands:
   data:
@@ -36,7 +36,7 @@ eval_fluentspeechcommands:
     prompt: Identify the command, action, and object from the speech.
     repo_id: mispeech/xares_llm_data
   batch_size: 64
-  num_workers: 8
+  num_workers: 4
   metric: Accuracy
 eval_freemusicarchive:
   data:
@@ -68,7 +68,7 @@ eval_fsdkaggle2018:
     prompt: Multi-label classification for FSDKaggle2018
     repo_id: mispeech/xares_llm_data
   batch_size: 64
-  num_workers: 8
+  num_workers: 3
   metric: mAP
   metric_args:
     num_classes: 41
@@ -80,7 +80,7 @@ eval_gtzan:
     prompt: Classify the music genre (GTZAN).
     repo_id: mispeech/xares_llm_data
   batch_size: 64
-  num_workers: 8
+  num_workers: 1
   metric: Accuracy
 eval_libricount:
   data:
@@ -90,7 +90,7 @@ eval_libricount:
     prompt: Count the amount of speakers.
     repo_id: mispeech/xares_llm_data
   batch_size: 64
-  num_workers: 8
+  num_workers: 1
   metric: Accuracy
 eval_nsynth:
   data:
@@ -100,7 +100,7 @@ eval_nsynth:
     prompt: Classify the music instrument.
     repo_id: mispeech/xares_llm_data
   batch_size: 64
-  num_workers: 8
+  num_workers: 6
   metric: Accuracy
 eval_speechcommandsv1:
   data:
@@ -110,7 +110,7 @@ eval_speechcommandsv1:
     prompt: Classify the keyword.
     repo_id: mispeech/xares_llm_data
   batch_size: 64
-  num_workers: 8
+  num_workers: 7
   metric: Accuracy
 eval_urbansound8k:
   data:
@@ -120,7 +120,7 @@ eval_urbansound8k:
     prompt: Classify the urban sound.
     repo_id: mispeech/xares_llm_data
   batch_size: 64
-  num_workers: 8
+  num_workers: 1
   metric: Accuracy
 eval_vocalsound:
   data:
@@ -130,7 +130,7 @@ eval_vocalsound:
     prompt: Classify the vocal sound.
     repo_id: mispeech/xares_llm_data
   batch_size: 64
-  num_workers: 8
+  num_workers: 5
   metric: Accuracy
 eval_voxceleb1:
   data:
@@ -150,5 +150,5 @@ eval_voxlingua33:
     prompt: Classify the language.
     repo_id: mispeech/xares_llm_data
   batch_size: 64
-  num_workers: 8
+  num_workers: 6
   metric: Accuracy

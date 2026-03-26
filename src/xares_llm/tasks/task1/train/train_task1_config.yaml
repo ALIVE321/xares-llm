@@ -1,7 +1,7 @@
-max_steps: 25000
-num_training_workers: 8
+max_steps: 10000
+num_training_workers: 1
 per_device_train_batch_size: 8
-decoder_model_name: model/Qwen3-0.6B
+decoder_model_name: Qwen/Qwen3-4B-Instruct-2507
 train_data:
     ESC-50:
         prompt: Classify the environmental sound.

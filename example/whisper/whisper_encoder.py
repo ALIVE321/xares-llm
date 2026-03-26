@@ -29,12 +29,16 @@ class WhisperEncoder(torch.nn.Module):
         if audio_attention_mask is not None:
             audio_lengths = audio_attention_mask.sum(dim=-1).long()
         else:
-            audio_lengths = torch.tensor([audio.shape[-1]] * audio.shape[0], dtype=torch.long)
+            audio_lengths = torch.full((audio.shape[0],), audio.shape[-1], dtype=torch.long, device=audio.device)
         audio_list = [audio[i, :audio_lengths[i]].cpu().numpy() for i in range(audio.shape[0])]
 
-        mel_lengths = audio_lengths // self.processor.feature_extractor.hop_length
+        hop_length = self.processor.feature_extractor.hop_length
+        # Whisper processor 会将音频截断到 n_samples（默认 480000，即 30 秒），
+        # 因此 mel 帧数上限为 n_samples // hop_length = 3000，需要 clamp 防止越界。
+        max_mel_length = self.processor.feature_extractor.n_samples // hop_length
+        mel_lengths = (audio_lengths // hop_length).clamp(max=max_mel_length)
         feature_lengths = (mel_lengths - 1) // 2 + 1
-        trim_length = feature_lengths.amax()
+        trim_length = feature_lengths.amax().item()
         attention_mask = length_to_mask(feature_lengths)
 
         features = self.processor(audio_list, sampling_rate=16000, return_tensors="pt").to(self.model.device)

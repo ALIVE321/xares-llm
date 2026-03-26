@@ -6,7 +6,7 @@ eval_aishell-1:
     key: text
     repo_id: mispeech/xares_llm_data
   batch_size: 32
-  num_workers: 8
+  num_workers: 4
   metric: iCER
 eval_clotho:
   data:
@@ -16,7 +16,7 @@ eval_clotho:
     prompt: Generate a short caption for the audio.
     repo_id: mispeech/xares_llm_data
   batch_size: 32
-  num_workers: 8
+  num_workers: 5
   metric: FENSE
 eval_librispeech:
   data:
@@ -44,8 +44,8 @@ eval_mecat:
     key: long
     prompt: Write a general audiocaption.
     repo_id: mispeech/MECAT-Caption
-  batch_size: 64
-  num_workers: 8
+  batch_size: 32
+  num_workers: 5
   metric: DATE
 eval_songdescriber:
   data:
@@ -54,6 +54,6 @@ eval_songdescriber:
     key: captions
     prompt: Generate a caption for the music
     repo_id: mispeech/xares_llm_data
-  batch_size: 32
-  num_workers: 8
+  batch_size: 8
+  num_workers: 2
   metric: FENSE

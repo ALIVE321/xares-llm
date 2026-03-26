@@ -333,6 +333,7 @@ def _process_sample_stream(
     append_targets_to_input: bool = True,  # During training yes, inference no
     handler: Callable = warn_and_continue,
     tokenizer_eos_token: bool = False,
+    prompt_format_fn: Callable | None = None,  # 可选：将 prompt 文本格式化为 chat template 格式
 ) -> Iterable[Dict[str, Any]]:
     for data_sample in stream:
         # Note: We use the local variables from the outer scope directly.
@@ -370,7 +371,10 @@ def _process_sample_stream(
                 sample_prompt = data_sample.pop("prompt")
             if isinstance(sample_prompt, list) and len(sample_prompt) > 0 and isinstance(sample_prompt[0], str):
                 sample_prompt = random.choice(sample_prompt)
-            prompt_inputs = tokenizer(sample_prompt)
+
+            # 如果提供了 prompt_format_fn，用它格式化 prompt（如 chat template）
+            formatted_prompt = prompt_format_fn(sample_prompt) if prompt_format_fn else sample_prompt
+            prompt_inputs = tokenizer(formatted_prompt, add_special_tokens=False)
 
             input_ids = prompt_inputs["input_ids"]
             attention_mask = prompt_inputs["attention_mask"]
@@ -378,7 +382,7 @@ def _process_sample_stream(
 
             if tokenizer_eos_token:
                 text = text + tokenizer.eos_token
-            text_inputs = tokenizer(text)  # Textinputs is a List[int]
+            text_inputs = tokenizer(text, add_special_tokens=False)
             # 4. Text Tokenization and Filtering By tokens
             if exists(max_text_token_length) and len(text_inputs["input_ids"]) > max_text_token_length:
                 logger.warning(
@@ -492,12 +496,17 @@ def create_audio_text_token_pipeline(
     tokenizer_eos_token = (
         tokenizer.eos_token if (hasattr(tokenizer, "eos_token") and training) else None
     )  # Dont need to estimate EOS token during inference
+
+    # 从 filtering_kwargs 中提取 prompt_format_fn，避免传入 **filtering_kwargs 时冲突
+    prompt_format_fn = filtering_kwargs.pop("prompt_format_fn", None)
+
     pipeline.append(
         partial(
             _process_sample_stream,
             tokenizer=tokenizer,
             tokenizer_eos_token=tokenizer_eos_token,
             append_targets_to_input=training,
+            prompt_format_fn=prompt_format_fn,
             **filtering_kwargs,
         )
     )
@@ -533,6 +542,7 @@ class AudioTextTokenWebdataset:
     shuffle: int = 256  # For Webloader during training
     dataset: wds.DataPipeline | None = None  # Saving the generated dataset
     cache_dir: str = ""  # use default cache dir
+    prompt_format_fn: Callable | None = None  # 可选：chat template 格式化函数
 
     def __post_init__(self):
         if hasattr(self.tokenizer, "pad_token") and self.tokenizer.pad_token is None:
@@ -562,6 +572,7 @@ class AudioTextTokenWebdataset:
                 max_text_token_length=self.max_text_token_length,
                 resample=self.resample,
                 cache_dir=self.cache_dir,
+                prompt_format_fn=self.prompt_format_fn,
             )
             datasets.append((data_type, ds))
 

@@ -30,6 +30,7 @@ from xares_llm.utils import seed_everything, setup_global_logger
 from xares_llm.audiowebdataset import AudioTextDataType, AudioTextTokenWebdataset
 from xares_llm.trainer import XaresLLMTrainerEvaluator
 from xares_llm.modeling_audiollm import XaresLLMModel, XaresLLMModelConfig
+from xares_llm.modeling_audiollm.modeling_xaresllm import AUDIO_PLACEHOLDER
 from xares_llm.metrics import get_metric, RegisteredMetricsLiteral, TokenDecoder
 import importlib
 import pprint
@@ -71,10 +72,14 @@ class XaresLLMTrainConfig:
     # decoder
     decoder_model_name: str = "Qwen/Qwen3-0.6B"
 
+    # Chat template
+    use_chat_template: bool = True
+    chat_template_system_prompt: str | None = None
+
     # Dataloader/dataset arguments
     crop_audio_length: float = 30  # Cropping all audio to at most 30s
     save_total_limit: int | None = field(default=1)
-    save_steps: float = field(default=200)  # TrainingArguments is float ....
+    save_steps: float = field(default=5000)  # TrainingArguments is float ....
     warmup_steps: int = field(default=200)
     max_steps: int = field(
         default=10000,
@@ -90,7 +95,7 @@ class XaresLLMTrainConfig:
     weight_decay: float = field(default=0.01)
     max_grad_norm: float = field(default=1.0)
     logging_dir: str = "log"
-    logging_steps: int = 100
+    logging_steps: int = 50
     num_training_workers: int = 0
     sort_by_length: int = 128  # Sort 128 samples by length
 
@@ -203,6 +208,28 @@ class XaresLLMTask:
         logger.info(f"Experiment output path set to {self.output_dir}")
         logger.info(f"Loading {train_config.decoder_model_name} tokenizer")
         self.tokenizer = AutoTokenizer.from_pretrained(train_config.decoder_model_name, fix_mistral_regex=True)
+
+        # 构建 prompt_format_fn：利用 tokenizer.apply_chat_template 将 prompt 格式化为对话格式
+        # 在 user message 中插入 AUDIO_PLACEHOLDER 占位符，模型前向时会将其替换为音频 embedding
+        self.prompt_format_fn = None
+        self._audio_placeholder_token_ids = None
+        if train_config.use_chat_template:
+            sys_prompt = train_config.chat_template_system_prompt
+            _tokenizer = self.tokenizer
+            placeholder = AUDIO_PLACEHOLDER
+            def _format_prompt(prompt_text: str) -> str:
+                messages = []
+                if sys_prompt:
+                    messages.append({"role": "system", "content": sys_prompt})
+                messages.append({"role": "user", "content": f"{placeholder}\n{prompt_text}"})
+                return _tokenizer.apply_chat_template(
+                    messages, tokenize=False, add_generation_prompt=True
+                )
+            self.prompt_format_fn = _format_prompt
+            # 预计算占位符的 token ids，后续传给模型用于定位替换位置
+            self._audio_placeholder_token_ids = _tokenizer.encode(placeholder, add_special_tokens=False)
+            logger.info(f"Chat template enabled, system_prompt: '{sys_prompt}', placeholder: '{placeholder}' -> token_ids: {self._audio_placeholder_token_ids}")
+
         training_args = TrainingArguments(
             output_dir=str(self.output_dir),
             learning_rate=self.train_config.learning_rate,
@@ -218,16 +245,21 @@ class XaresLLMTask:
             logging_steps=self.train_config.logging_steps,
             logging_dir=Path(self.output_dir) / self.train_config.logging_dir,
             ddp_find_unused_parameters=False,
+            average_tokens_across_devices=True,
         )
         # Lazy init, during .train() or .eval()
-        model_init_function = lambda: XaresLLMModel(
-            config=XaresLLMModelConfig(
-                decoder_type=self.train_config.decoder_model_name,
-                audio_encoder_name=self.train_config.audio_encoder_module_path,
-                audio_encoder_params=self.train_config.audio_encoder_kwargs,
-                benchmark_type=self.train_config.benchmark_type,
-            ),
-        )
+        _placeholder_ids = self._audio_placeholder_token_ids
+        def model_init_function():
+            model = XaresLLMModel(
+                config=XaresLLMModelConfig(
+                    decoder_type=self.train_config.decoder_model_name,
+                    audio_encoder_name=self.train_config.audio_encoder_module_path,
+                    audio_encoder_params=self.train_config.audio_encoder_kwargs,
+                    benchmark_type=self.train_config.benchmark_type,
+                ),
+            )
+            model._audio_placeholder_token_ids = _placeholder_ids
+            return model
         self.model = None
         # Glob for checkpoint directories (e.g., 'checkpoint-1000', 'checkpoint-2000')
         checkpoint_dirs = sorted(
@@ -238,6 +270,7 @@ class XaresLLMTask:
         if checkpoint_dirs:
             logger.info(f"Found pretrained model, loading from {checkpoint_dirs[0]}")
             self.model = XaresLLMModel.from_pretrained(checkpoint_dirs[0])
+            self.model._audio_placeholder_token_ids = _placeholder_ids
         self.trainer = XaresLLMTrainerEvaluator(model=None, model_init=model_init_function, args=training_args)
 
     def run_mlp(self, eval_configs: List[XaresLLMEvaluationConfig]) -> List[Dict[str, Any]]:
@@ -279,6 +312,7 @@ class XaresLLMTask:
             sort_by_length=self.train_config.sort_by_length,
             num_workers=self.train_config.num_training_workers,
             crop_audio_length=self.train_config.crop_audio_length,
+            prompt_format_fn=self.prompt_format_fn,
         )
         self.trainer.train_data_object = train_data_object
         self.trainer.train()
@@ -310,6 +344,7 @@ class XaresLLMTask:
             batch_size=eval_config.batch_size,
             sort_by_length=256,  # just to speed up a bit
             num_workers=eval_config.num_workers,
+            prompt_format_fn=self.prompt_format_fn,
         )
         self.trainer.compute_metrics = metrics_compute_function
 
